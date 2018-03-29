@@ -138,9 +138,9 @@ type
 
   # https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement
   HtmlElement* = ref object of Element
-    contentEditable*: cstring
+    contentEditable*: string
     isContentEditable*: bool
-    dir*: cstring
+    dir*: string
     offsetHeight*: int
     offsetWidth*: int
     offsetLeft*: int
@@ -445,7 +445,6 @@ type
 # EventTarget "methods"
 proc addEventListener*(et: EventTarget, ev: cstring, cb: proc(ev: Event), useCapture: bool = false)
 proc addEventListener*(et: EventTarget, ev: cstring, cb: proc(ev: Event), options: AddEventListenerOptions)
-proc removeEventListener*(et: EventTarget, ev: cstring, cb: proc(ev: Event), useCapture: bool = false)
 
 # Window "methods"
 proc alert*(w: Window, msg: cstring)
@@ -548,7 +547,6 @@ proc replace*(loc: Location, s: cstring)
 proc back*(h: History)
 proc forward*(h: History)
 proc go*(h: History, pagesToJump: int)
-proc pushState*[T](h: History, stateObject: T, title, url: cstring)
 
 # Navigator "methods"
 proc javaEnabled*(h: Navigator): bool
