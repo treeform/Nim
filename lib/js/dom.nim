@@ -416,12 +416,12 @@ type
   BoundingRect* {.importc.} = ref object
     top*, bottom*, left*, right*, x*, y*, width*, height*: float
 
-  PerformanceMemory* {.importc.} = ref object 
+  PerformanceMemory* {.importc.} = ref object
     jsHeapSizeLimit*: float
     totalJSHeapSize*: float
     usedJSHeapSize*: float
 
-  PerformanceTiming* {.importc.} = ref object 
+  PerformanceTiming* {.importc.} = ref object
     connectStart*: float
     domComplete*: float
     domContentLoadedEventEnd*: float

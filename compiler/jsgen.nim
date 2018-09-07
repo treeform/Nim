@@ -532,6 +532,7 @@ proc hasFrameInfo(p: PProc): bool =
   ({optLineTrace, optStackTrace} * p.options == {optLineTrace, optStackTrace}) and
       ((p.prc == nil) or not (sfPure in p.prc.flags))
 
+var prevFileName = ""
 proc genLineDir(p: PProc, n: PNode) =
   let line = toLinenumber(n.info)
   if optLineDir in p.options:
@@ -543,6 +544,10 @@ proc genLineDir(p: PProc, n: PNode) =
     lineF(p, "endb($1);$n", [rope(line)])
   elif hasFrameInfo(p):
     lineF(p, "F.line = $1;$n", [rope(line)])
+    let thisFileName = toFilename(p.config, n.info)
+    if prevFileName != thisFileName:
+      lineF(p, "F.filename = $1;$n", [makeJSString(thisFileName)])
+      prevFileName = thisFileName
 
 proc genWhileStmt(p: PProc, n: PNode) =
   var

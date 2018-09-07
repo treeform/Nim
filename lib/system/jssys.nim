@@ -195,72 +195,38 @@ proc makeNimstrLit(c: cstring): string {.asmNoStackFrame, compilerproc.} =
 
 proc cstrToNimstr(c: cstring): string {.asmNoStackFrame, compilerproc.} =
   {.emit: """
-  var ln = `c`.length;
-  var result = new Array(ln);
-  var r = 0;
-  for (var i = 0; i < ln; ++i) {
-    var ch = `c`.charCodeAt(i);
-
-    if (ch < 128) {
-      result[r] = ch;
+  //if (`c`.length == 0) return null; // handle "" as null
+  var encoded = encodeURIComponent(`c`);
+  var ln = encoded.length;
+  var result = new Array();
+  for (var i = 0; i < ln; i++) {
+    if (encoded[i] === "%") {
+      result.push(parseInt(encoded.slice(i + 1, i + 3), 16));
+      i += 2;
+    } else {
+      result.push(encoded[i].charCodeAt());
     }
-    else {
-      if (ch < 2048) {
-        result[r] = (ch >> 6) | 192;
-      }
-      else {
-        if (ch < 55296 || ch >= 57344) {
-          result[r] = (ch >> 12) | 224;
-        }
-        else {
-            ++i;
-            ch = 65536 + (((ch & 1023) << 10) | (`c`.charCodeAt(i) & 1023));
-            result[r] = (ch >> 18) | 240;
-            ++r;
-            result[r] = ((ch >> 12) & 63) | 128;
-        }
-        ++r;
-        result[r] = ((ch >> 6) & 63) | 128;
-      }
-      ++r;
-      result[r] = (ch & 63) | 128;
-    }
-    ++r;
   }
-  result[r] = 0; // terminating zero
-  return result;
+  result.push(0); // terminating zero
+  return result
   """.}
 
 proc toJSStr(s: string): cstring {.asmNoStackFrame, compilerproc.} =
-  asm """
-  var len = `s`.length-1;
-  var asciiPart = new Array(len);
-  var fcc = String.fromCharCode;
-  var nonAsciiPart = null;
-  var nonAsciiOffset = 0;
-  for (var i = 0; i < len; ++i) {
-    if (nonAsciiPart !== null) {
-      var offset = (i - nonAsciiOffset) * 2;
-      var code = `s`[i].toString(16);
-      if (code.length == 1) {
-        code = "0"+code;
-      }
-      nonAsciiPart[offset] = "%";
-      nonAsciiPart[offset + 1] = code;
+  {.emit: """
+  //if (`s` == null) return ""; // handle null as ""
+  var arr = `s`;
+  var encoded = "";
+  var ln = arr.length - 1; // terminating zero
+  for (var i = 0; i < ln; i++){
+    encoded += "%";
+    num = arr[i].toString(16)
+    if (num.length === 1) {
+      encoded += "0";
     }
-    else if (`s`[i] < 128)
-      asciiPart[i] = fcc(`s`[i]);
-    else {
-      asciiPart.length = i;
-      nonAsciiOffset = i;
-      nonAsciiPart = new Array((len - i) * 2);
-      --i;
-    }
+    encoded += num;
   }
-  asciiPart = asciiPart.join("");
-  return (nonAsciiPart === null) ?
-      asciiPart : asciiPart + decodeURIComponent(nonAsciiPart.join(""));
-  """
+  return decodeURIComponent(encoded);
+  """.}
 
 proc mnewString(len: int): string {.asmNoStackFrame, compilerproc.} =
   asm """
