@@ -16,12 +16,12 @@ import
   procfind, lookups, pragmas, passes, semdata, semtypinst, sigmatch,
   intsets, transf, vmdef, vm, idgen, aliases, cgmeth, lambdalifting,
   evaltempl, patterns, parampatterns, sempass2, linter, semmacrosanity,
-  semparallel, lowerings, pluginsupport, plugins.active, rod, lineinfos
+  semparallel, lowerings, pluginsupport, plugins/active, rod, lineinfos
 
 from modulegraphs import ModuleGraph
 
 when defined(nimfix):
-  import nimfix.prettybase
+  import nimfix/prettybase
 
 # implementation
 
@@ -119,7 +119,7 @@ proc commonType*(x, y: PType): PType =
   elif b.kind == tyStmt: result = b
   elif a.kind == tyTypeDesc:
     # turn any concrete typedesc into the abstract typedesc type
-    if a.sons == nil: result = a
+    if a.len == 0: result = a
     else:
       result = newType(tyTypeDesc, a.owner)
       rawAddSon(result, newType(tyNone, a.owner))
@@ -607,25 +607,6 @@ proc myProcess(context: PPassContext, n: PNode): PNode =
       #if c.config.cmd == cmdIdeTools: findSuggest(c, n)
   rod.storeNode(c.graph, c.module, result)
 
-proc testExamples(c: PContext) =
-  let inp = toFullPath(c.config, c.module.info)
-  let outp = inp.changeFileExt"" & "_examples.nim"
-  let nimcache = outp.changeFileExt"" & "_nimcache"
-  renderModule(c.runnableExamples, inp, outp)
-  let backend = if isDefined(c.config, "js"): "js"
-                elif isDefined(c.config, "cpp"): "cpp"
-                elif isDefined(c.config, "objc"): "objc"
-                else: "c"
-  if os.execShellCmd(os.getAppFilename() & " " & backend & " --nimcache:" & nimcache & " -r " & outp) != 0:
-    quit "[Examples] failed"
-  else:
-    removeFile(outp)
-    removeFile(outp.changeFileExt(ExeExt))
-    try:
-      removeDir(nimcache)
-    except OSError:
-      discard
-
 proc myClose(graph: ModuleGraph; context: PPassContext, n: PNode): PNode =
   var c = PContext(context)
   if c.config.cmd == cmdIdeTools and not c.suggestionsMade:
@@ -641,7 +622,6 @@ proc myClose(graph: ModuleGraph; context: PPassContext, n: PNode): PNode =
   popOwner(c)
   popProcCon(c)
   storeRemaining(c.graph, c.module)
-  if c.runnableExamples != nil: testExamples(c)
 
 const semPass* = makePass(myOpen, myProcess, myClose,
                           isFrontend = true)

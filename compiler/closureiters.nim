@@ -239,7 +239,7 @@ proc toStmtList(n: PNode): PNode =
 proc addGotoOut(n: PNode, gotoOut: PNode): PNode =
   # Make sure `n` is a stmtlist, and ends with `gotoOut`
   result = toStmtList(n)
-  if result.len != 0 and result.sons[^1].kind != nkGotoState:
+  if result.len == 0 or result.sons[^1].kind != nkGotoState:
     result.add(gotoOut)
 
 proc newTempVar(ctx: var Ctx, typ: PType): PSym =
@@ -588,7 +588,7 @@ proc lowerStmtListExprs(ctx: var Ctx, n: PNode, needsSplit: var bool): PNode =
           let branch = n[i]
           case branch.kind
           of nkOfBranch:
-            branch[1] = ctx.convertExprBodyToAsgn(branch[1], tmp)
+            branch[^1] = ctx.convertExprBodyToAsgn(branch[^1], tmp)
           of nkElse:
             branch[0] = ctx.convertExprBodyToAsgn(branch[0], tmp)
           else:
@@ -678,7 +678,7 @@ proc lowerStmtListExprs(ctx: var Ctx, n: PNode, needsSplit: var bool): PNode =
       n[0] = ex
       result.add(n)
 
-  of nkCast, nkHiddenStdConv, nkHiddenSubConv, nkConv:
+  of nkCast, nkHiddenStdConv, nkHiddenSubConv, nkConv, nkObjDownConv:
     var ns = false
     for i in 0 ..< n.len:
       n[i] = ctx.lowerStmtListExprs(n[i], ns)
@@ -687,9 +687,9 @@ proc lowerStmtListExprs(ctx: var Ctx, n: PNode, needsSplit: var bool): PNode =
       needsSplit = true
       result = newNodeI(nkStmtListExpr, n.info)
       result.typ = n.typ
-      let (st, ex) = exprToStmtList(n[1])
+      let (st, ex) = exprToStmtList(n[^1])
       result.add(st)
-      n[1] = ex
+      n[^1] = ex
       result.add(n)
 
   of nkAsgn, nkFastAsgn:

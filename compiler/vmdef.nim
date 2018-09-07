@@ -17,7 +17,7 @@ const
   byteExcess* = 128 # we use excess-K for immediates
   wordExcess* = 32768
 
-  MaxLoopIterations* = 1_000_000_000 # max iterations of all loops
+  MaxLoopIterations* = 3_000_000 # max iterations of all loops
 
 
 type
@@ -57,11 +57,12 @@ type
     opcLenStr,
 
     opcIncl, opcInclRange, opcExcl, opcCard, opcMulInt, opcDivInt, opcModInt,
-    opcAddFloat, opcSubFloat, opcMulFloat, opcDivFloat, opcShrInt, opcShlInt,
+    opcAddFloat, opcSubFloat, opcMulFloat, opcDivFloat,
+    opcShrInt, opcShlInt, opcAshrInt,
     opcBitandInt, opcBitorInt, opcBitxorInt, opcAddu, opcSubu, opcMulu,
     opcDivu, opcModu, opcEqInt, opcLeInt, opcLtInt, opcEqFloat,
     opcLeFloat, opcLtFloat, opcLeu, opcLtu,
-    opcEqRef, opcEqNimrodNode, opcSameNodeType,
+    opcEqRef, opcEqNimNode, opcSameNodeType,
     opcXor, opcNot, opcUnaryMinusInt, opcUnaryMinusFloat, opcBitnotInt,
     opcEqStr, opcLeStr, opcLtStr, opcEqSet, opcLeSet, opcLtSet,
     opcMulSet, opcPlusSet, opcMinusSet, opcSymdiffSet, opcConcatStr,
@@ -102,7 +103,7 @@ type
     opcNError,
     opcNWarning,
     opcNHint,
-    opcNGetLine, opcNGetColumn, opcNGetFile,
+    opcNGetLineInfo, opcNSetLineInfo,
     opcEqIdent,
     opcStrToIdent,
     opcGetImpl,
@@ -136,11 +137,12 @@ type
     opcLdGlobalAddr, # dest = addr(globals[Bx])
 
     opcLdImmInt,  # dest = immediate value
-    opcNBindSym,
+    opcNBindSym, opcNDynBindSym,
     opcSetType,   # dest.typ = types[Bx]
     opcTypeTrait,
     opcMarshalLoad, opcMarshalStore,
-    opcToNarrowInt
+    opcToNarrowInt,
+    opcSymOwner
 
   TBlock* = object
     label*: PSym
@@ -229,7 +231,8 @@ proc refresh*(c: PCtx, module: PSym) =
   c.prc = PProc(blocks: @[])
   c.loopIterations = MaxLoopIterations
 
-proc registerCallback*(c: PCtx; name: string; callback: VmCallback) =
+proc registerCallback*(c: PCtx; name: string; callback: VmCallback): int {.discardable.} =
+  result = c.callbacks.len
   c.callbacks.add((name, callback))
 
 const

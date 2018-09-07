@@ -150,7 +150,8 @@ template sameOrNoInd(p): bool = p.tok.indent == p.currInd or p.tok.indent < 0
 proc rawSkipComment(p: var TParser, node: PNode) =
   if p.tok.tokType == tkComment:
     if node != nil:
-      if node.comment == nil: node.comment = ""
+      when not defined(nimNoNilSeqs):
+        if node.comment == nil: node.comment = ""
       when defined(nimpretty):
         if p.tok.commentOffsetB > p.tok.commentOffsetA:
           add node.comment, fileSection(p.lex.config, p.lex.fileIdx, p.tok.commentOffsetA, p.tok.commentOffsetB)
@@ -250,41 +251,6 @@ proc isRightAssociative(tok: TToken): bool {.inline.} =
   ## Determines whether the token is right assocative.
   result = tok.tokType == tkOpr and tok.ident.s[0] == '^'
   # or (let L = tok.ident.s.len; L > 1 and tok.ident.s[L-1] == '>'))
-
-proc getPrecedence(tok: TToken, strongSpaces: bool): int =
-  ## Calculates the precedence of the given token.
-  template considerStrongSpaces(x): untyped =
-    x + (if strongSpaces: 100 - tok.strongSpaceA.int*10 else: 0)
-
-  case tok.tokType
-  of tkOpr:
-    let L = tok.ident.s.len
-    let relevantChar = tok.ident.s[0]
-
-    # arrow like?
-    if L > 1 and tok.ident.s[L-1] == '>' and
-      tok.ident.s[L-2] in {'-', '~', '='}: return considerStrongSpaces(1)
-
-    template considerAsgn(value: untyped) =
-      result = if tok.ident.s[L-1] == '=': 1 else: value
-
-    case relevantChar
-    of '$', '^': considerAsgn(10)
-    of '*', '%', '/', '\\': considerAsgn(9)
-    of '~': result = 8
-    of '+', '-', '|': considerAsgn(8)
-    of '&': considerAsgn(7)
-    of '=', '<', '>', '!': result = 5
-    of '.': considerAsgn(6)
-    of '?': result = 2
-    else: considerAsgn(2)
-  of tkDiv, tkMod, tkShl, tkShr: result = 9
-  of tkIn, tkNotin, tkIs, tkIsnot, tkNot, tkOf, tkAs: result = 5
-  of tkDotDot: result = 6
-  of tkAnd: result = 4
-  of tkOr, tkXor, tkPtr, tkRef: result = 3
-  else: return -10
-  result = considerStrongSpaces(result)
 
 proc isOperator(tok: TToken): bool =
   ## Determines if the given token is an operator type token.
@@ -568,6 +534,7 @@ proc parsePar(p: var TParser): PNode =
   result = newNodeP(nkPar, p)
   getTok(p)
   optInd(p, result)
+  flexComment(p, result)
   if p.tok.tokType in {tkDiscard, tkInclude, tkIf, tkWhile, tkCase,
                        tkTry, tkDefer, tkFinally, tkExcept, tkFor, tkBlock,
                        tkConst, tkLet, tkWhen, tkVar,
@@ -1636,7 +1603,7 @@ proc parseStaticOrDefer(p: var TParser; k: TNodeKind): PNode =
   addSon(result, parseStmt(p))
 
 proc parseAsm(p: var TParser): PNode =
-  #| asmStmt = 'asm' pragma? (STR_LIT | RSTR_LIT | TRIPLE_STR_LIT)
+  #| asmStmt = 'asm' pragma? (STR_LIT | RSTR_LIT | TRIPLESTR_LIT)
   result = newNodeP(nkAsmStmt, p)
   getTokNoInd(p)
   if p.tok.tokType == tkCurlyDotLe: addSon(result, parsePragma(p))

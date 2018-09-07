@@ -8,6 +8,7 @@
 #
 
 include "system/inclrtl"
+include "system/helpers"
 
 ## This module contains the interface to the compiler's abstract syntax
 ## tree (`AST`:idx:). Macros operate on this tree.
@@ -236,6 +237,12 @@ else: # bootstrapping substitute
     else:
       n.strValOld
 
+when defined(nimHasSymOwnerInMacro):
+  proc owner*(sym: NimNode): NimNode {.magic: "SymOwner", noSideEffect.}
+    ## accepts node of kind nnkSym and returns its owner's symbol.
+    ## result is also mnde of kind nnkSym if owner exists otherwise 
+    ## nnkNilLit is returned
+
 proc getType*(n: NimNode): NimNode {.magic: "NGetType", noSideEffect.}
   ## with 'getType' you can access the node's `type`:idx:. A Nim type is
   ## mapped to a Nim AST too, so it's slightly confusing but it means the same
@@ -335,10 +342,10 @@ proc copyNimTree*(n: NimNode): NimNode {.magic: "NCopyNimTree", noSideEffect.}
 proc error*(msg: string, n: NimNode = nil) {.magic: "NError", benign.}
   ## writes an error message at compile time
 
-proc warning*(msg: string) {.magic: "NWarning", benign.}
+proc warning*(msg: string, n: NimNode = nil) {.magic: "NWarning", benign.}
   ## writes a warning message at compile time
 
-proc hint*(msg: string) {.magic: "NHint", benign.}
+proc hint*(msg: string, n: NimNode = nil) {.magic: "NHint", benign.}
   ## writes a hint message at compile time
 
 proc newStrLitNode*(s: string): NimNode {.compileTime, noSideEffect.} =
@@ -382,16 +389,24 @@ type
 
 {.deprecated: [TBindSymRule: BindSymRule].}
 
-proc bindSym*(ident: static[string], rule: BindSymRule = brClosed): NimNode {.
+proc bindSym*(ident: string | NimNode, rule: BindSymRule = brClosed): NimNode {.
               magic: "NBindSym", noSideEffect.}
   ## creates a node that binds `ident` to a symbol node. The bound symbol
   ## may be an overloaded symbol.
+  ## if `ident` is a NimNode, it must have nkIdent kind.
   ## If ``rule == brClosed`` either an ``nkClosedSymChoice`` tree is
   ## returned or ``nkSym`` if the symbol is not ambiguous.
   ## If ``rule == brOpen`` either an ``nkOpenSymChoice`` tree is
   ## returned or ``nkSym`` if the symbol is not ambiguous.
   ## If ``rule == brForceOpen`` always an ``nkOpenSymChoice`` tree is
   ## returned even if the symbol is not ambiguous.
+  ##
+  ## experimental feature:
+  ## use {.experimental: "dynamicBindSym".} to activate it
+  ## if called from template / regular code, `ident` and `rule` must be
+  ## constant expression / literal value.
+  ## if called from macros / compile time procs / static blocks,
+  ## `ident` and `rule` can be VM computed value.
 
 proc genSym*(kind: NimSymKind = nskLet; ident = ""): NimNode {.
   magic: "NGenSym", noSideEffect.}
@@ -414,7 +429,8 @@ type
     line*,column*: int
 
 proc `$`*(arg: Lineinfo): string =
-  result = arg.filename & "(" & $arg.line & ", " & $arg.column & ")"
+  # BUG: without `result = `, gives compile error
+  result = lineInfoToString(arg.filename, arg.line, arg.column)
 
 #proc lineinfo*(n: NimNode): LineInfo {.magic: "NLineInfo", noSideEffect.}
   ## returns the position the node appears in the original source file
@@ -424,7 +440,11 @@ proc getLine(arg: NimNode): int {.magic: "NLineInfo", noSideEffect.}
 proc getColumn(arg: NimNode): int {.magic: "NLineInfo", noSideEffect.}
 proc getFile(arg: NimNode): string {.magic: "NLineInfo", noSideEffect.}
 
+proc copyLineInfo*(arg: NimNode, info: NimNode) {.magic: "NLineInfo", noSideEffect.}
+  ## copy lineinfo from info node
+
 proc lineInfoObj*(n: NimNode): LineInfo {.compileTime.} =
+  ## returns ``LineInfo`` of ``n``, using absolute path for ``filename``
   result.filename = n.getFile
   result.line = n.getLine
   result.column = n.getColumn
@@ -1284,7 +1304,7 @@ proc customPragmaNode(n: NimNode): NimNode =
   let
     typ = n.getTypeInst()
 
-  if typ.kind == nnkBracketExpr and typ.len > 1 and typ[1].kind == nnkProcTy: 
+  if typ.kind == nnkBracketExpr and typ.len > 1 and typ[1].kind == nnkProcTy:
     return typ[1][1]
   elif typ.typeKind == ntyTypeDesc:
     let impl = typ[1].getImpl()
@@ -1319,6 +1339,8 @@ proc customPragmaNode(n: NimNode): NimNode =
           if identDefs.kind == nnkRecCase:
             identDefsStack.add(identDefs[0])
             for i in 1..<identDefs.len:
+              # if it is and empty branch, skip
+              if identDefs[i][0].kind == nnkNilLit: continue
               if identDefs[i][1].kind == nnkIdentDefs:
                 identDefsStack.add(identDefs[i][1])
               else: # nnkRecList

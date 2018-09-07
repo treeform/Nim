@@ -243,7 +243,8 @@ proc mangleName(m: BModule, s: PSym): Rope =
           x.add("HEX" & toHex(ord(c), 2))
         inc i
       result = rope(x)
-    if s.name.s != "this" and s.kind != skField:
+    # From ES5 on reserved words can be used as object field names
+    if s.kind != skField:
       if optHotCodeReloading in m.config.options:
         # When hot reloading is enabled, we must ensure that the names
         # of functions and types will be preserved across rebuilds:
@@ -271,9 +272,7 @@ proc escapeJSString(s: string): string =
   result.add("\"")
 
 proc makeJSString(s: string, escapeNonAscii = true): Rope =
-  if s.isNil:
-    result = "null".rope
-  elif escapeNonAscii:
+  if escapeNonAscii:
     result = strutils.escape(s).rope
   else:
     result = escapeJSString(s).rope
@@ -379,6 +378,7 @@ const # magic checked op; magic unchecked op; checked op; unchecked op
     ["", "", "($1 / $2)", "($1 / $2)"], # DivF64
     ["", "", "", ""], # ShrI
     ["", "", "($1 << $2)", "($1 << $2)"], # ShlI
+    ["", "", "($1 >> $2)", "($1 >> $2)"], # AshrI
     ["", "", "($1 & $2)", "($1 & $2)"], # BitandI
     ["", "", "($1 | $2)", "($1 | $2)"], # BitorI
     ["", "", "($1 ^ $2)", "($1 ^ $2)"], # BitxorI
@@ -663,15 +663,16 @@ proc genTry(p: PProc, n: PNode, r: var TCompRes) =
   line(p, "}\L")
 
 proc genRaiseStmt(p: PProc, n: PNode) =
-  genLineDir(p, n)
   if n.sons[0].kind != nkEmpty:
     var a: TCompRes
     gen(p, n.sons[0], a)
     let typ = skipTypes(n.sons[0].typ, abstractPtrs)
+    genLineDir(p, n)
     useMagic(p, "raiseException")
     lineF(p, "raiseException($1, $2);$n",
              [a.rdLoc, makeJSString(typ.sym.name.s)])
   else:
+    genLineDir(p, n)
     useMagic(p, "reraiseException")
     line(p, "reraiseException();\L")
 
@@ -769,11 +770,22 @@ proc genAsmOrEmitStmt(p: PProc, n: PNode) =
     of nkSym:
       let v = it.sym
       # for backwards compatibility we don't deref syms here :-(
-      if v.kind in {skVar, skLet, skTemp, skConst, skResult, skParam, skForVar}:
-        p.body.add mangleName(p.module, v)
+      if false:
+        discard
       else:
         var r: TCompRes
         gen(p, it, r)
+
+        if it.typ.kind == tyPointer:
+          # A fat pointer is disguised as an array
+          r.res = r.address
+          r.address = nil
+        elif r.typ == etyBaseIndex:
+          # Deference first
+          r.res = "$1[$2]" % [r.address, r.res]
+          r.address = nil
+          r.typ = etyNone
+
         p.body.add(r.rdLoc)
     else:
       var r: TCompRes
@@ -850,6 +862,7 @@ proc genAsgnAux(p: PProc, x, y: PNode, noCopyNeeded: bool) =
   else:
     gen(p, x, a)
 
+  genLineDir(p, y)
   gen(p, y, b)
 
   # we don't care if it's an etyBaseIndex (global) of a string, it's
@@ -886,11 +899,9 @@ proc genAsgnAux(p: PProc, x, y: PNode, noCopyNeeded: bool) =
     lineF(p, "$1 = $2;$n", [a.res, b.res])
 
 proc genAsgn(p: PProc, n: PNode) =
-  genLineDir(p, n)
   genAsgnAux(p, n.sons[0], n.sons[1], noCopyNeeded=false)
 
 proc genFastAsgn(p: PProc, n: PNode) =
-  genLineDir(p, n)
   # 'shallowCopy' always produced 'noCopyNeeded = true' here but this is wrong
   # for code like
   #  while j >= pos:
@@ -1271,7 +1282,7 @@ proc genInfixCall(p: PProc, n: PNode, r: var TCompRes) =
   if f.loc.r == nil: f.loc.r = mangleName(p.module, f)
   if sfInfixCall in f.flags:
     let pat = n.sons[0].sym.loc.r.data
-    internalAssert p.config, pat != nil
+    internalAssert p.config, pat.len > 0
     if pat.contains({'#', '(', '@'}):
       var typ = skipTypes(n.sons[0].typ, abstractInst)
       assert(typ.kind == tyProc)
@@ -1354,7 +1365,7 @@ proc arrayTypeForElemType(typ: PType): string =
   of tyUint8: "Uint8Array"
   of tyFloat32: "Float32Array"
   of tyFloat64, tyFloat: "Float64Array"
-  else: nil
+  else: ""
 
 proc createVar(p: PProc, typ: PType, indirect: bool): Rope =
   var t = skipTypes(typ, abstractInst)
@@ -1373,7 +1384,7 @@ proc createVar(p: PProc, typ: PType, indirect: bool): Rope =
     let length = int(lengthOrd(p.config, t))
     let e = elemType(t)
     let jsTyp = arrayTypeForElemType(e)
-    if not jsTyp.isNil:
+    if jsTyp.len > 0:
       result = "new $1($2)" % [rope(jsTyp), rope(length)]
     elif length > 32:
       useMagic(p, "arrayConstr")
