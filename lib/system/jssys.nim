@@ -188,12 +188,21 @@ proc makeNimstrLit(c: cstring): string {.asmNoStackFrame, compilerproc.} =
     result[i] = `c`.charCodeAt(i);
   }
   result[i] = 0; // terminating zero
+
+  var arr = result
+  for (var i = 0; i < arr.length; ++i) {
+    if (arr[i] > 255) {
+      console.log("How do you explain this!")
+      debugger
+    }
+  }
+
   return result;
   """.}
 
 proc cstrToNimstr(c: cstring): string {.asmNoStackFrame, compilerproc.} =
   {.emit: """
-  if (`c`.length == 0) return null; // handle "" as null
+  //if (`c`.length == 0) return null; // handle "" as null
   var encoded = encodeURIComponent(`c`);
   var ln = encoded.length;
   var result = new Array();
@@ -206,13 +215,32 @@ proc cstrToNimstr(c: cstring): string {.asmNoStackFrame, compilerproc.} =
     }
   }
   result.push(0); // terminating zero
+
+  var arr = result
+  for (var i = 0; i < arr.length; ++i) {
+    if (arr[i] > 255) {
+      console.log("How do you explain this!")
+      debugger
+    }
+  }
+
   return result
   """.}
 
 proc toJSStr(s: string): cstring {.asmNoStackFrame, compilerproc.} =
   {.emit: """
-  if (`s` == null) return ""; // handle null as ""
+
+  //if (`s` == null) return ""; // handle null as ""
   var arr = `s`;
+
+  for (var i = 0; i < arr.length; ++i) {
+    if (arr[i] > 255) {
+      //console.log("How do you explain this!")
+      //debugger
+      arr[i] = 63 // show must go on!
+    }
+  }
+
   var encoded = "";
   var ln = arr.length - 1; // terminating zero
   for (var i = 0; i < ln; i++){
