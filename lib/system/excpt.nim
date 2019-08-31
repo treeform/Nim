@@ -38,7 +38,10 @@ proc showErrorMessage(data: cstring) {.gcsafe.} =
       writeToStdErr(data)
 
 proc quitOrDebug() {.inline.} =
-  quit(1)
+  when defined(endb):
+    endbStep() # call the debugger
+  else:
+    quit(1)
 
 proc chckIndx(i, a, b: int): int {.inline, compilerproc, benign.}
 proc chckRange(i, a, b: int): int {.inline, compilerproc, benign.}
@@ -133,7 +136,8 @@ proc popCurrentExceptionEx(id: uint) {.compilerRtl.} =
     prev.up = cur.up
 
 proc closureIterSetupExc(e: ref Exception) {.compilerproc, inline.} =
-  currException = e
+  if not e.isNil:
+    currException = e
 
 # some platforms have native support for stack traces:
 const
@@ -338,15 +342,12 @@ proc raiseExceptionAux(e: ref Exception) =
   if globalRaiseHook != nil:
     if not globalRaiseHook(e): return
   when defined(cpp) and not defined(noCppExceptions):
-    if e == currException:
-      {.emit: "throw;".}
-    else:
-      pushCurrentException(e)
-      raiseCounter.inc
-      if raiseCounter == 0:
-        raiseCounter.inc # skip zero at overflow
-      e.raiseId = raiseCounter
-      {.emit: "`e`->raise();".}
+    pushCurrentException(e)
+    raiseCounter.inc
+    if raiseCounter == 0:
+      raiseCounter.inc # skip zero at overflow
+    e.raiseId = raiseCounter
+    {.emit: "`e`->raise();".}
   elif defined(nimQuirky):
     pushCurrentException(e)
   else:
@@ -466,6 +467,10 @@ proc nimFrame(s: PFrame) {.compilerRtl, inl.} =
   framePtr = s
   if s.calldepth == nimCallDepthLimit: callDepthLimitReached()
 
+when defined(endb):
+  var
+    dbgAborting: bool # whether the debugger wants to abort
+
 when defined(cpp) and appType != "lib" and
     not defined(js) and not defined(nimscript) and
     hostOS != "standalone" and not defined(noCppExceptions):
@@ -483,15 +488,23 @@ when defined(cpp) and appType != "lib" and
     setTerminate(nil)
 
     var msg = "Unknown error in unexpected exception handler"
-    try:
-      raise
-    except Exception:
+    when defined(vcc):
+      # disable C++ (not nim) exceptions caching for vcc
+    else:
+      # catch C++ (not nim) exceptions with nim
+      try:
+        raise
+      except Exception:
+        msg = currException.getStackTrace() & "Error: unhandled exception: " &
+          currException.msg & " [" & $currException.name & "]"
+      except StdException as e:
+        msg = "Error: unhandled cpp exception: " & $e.what()
+      except:
+        msg = "Error: unhandled unknown cpp exception"
+
+    if currException != nil:
       msg = currException.getStackTrace() & "Error: unhandled exception: " &
         currException.msg & " [" & $currException.name & "]"
-    except StdException as e:
-      msg = "Error: unhandled cpp exception: " & $e.what()
-    except:
-      msg = "Error: unhandled unknown cpp exception"
 
     when defined(genode):
       # stderr not available by default, use the LOG session
@@ -508,6 +521,8 @@ when not defined(noSignalHandler) and not defined(useNimRtl):
       elif s == SIGSEGV:
         action("SIGSEGV: Illegal storage access. (Attempt to read from nil?)\n")
       elif s == SIGABRT:
+        when defined(endb):
+          if dbgAborting: return # the debugger wants to abort
         action("SIGABRT: Abnormal termination.\n")
       elif s == SIGFPE: action("SIGFPE: Arithmetic error.\n")
       elif s == SIGILL: action("SIGILL: Illegal operation.\n")
@@ -537,6 +552,7 @@ when not defined(noSignalHandler) and not defined(useNimRtl):
         msg = y
       processSignal(sign, asgn)
       showErrorMessage(msg)
+    when defined(endb): dbgAborting = true
     quit(1) # always quit when SIGABRT
 
   proc registerSignalHandler() =
