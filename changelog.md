@@ -22,6 +22,9 @@
   literals remain in the "raw" string form so that client code can easily treat
   small and large numbers uniformly.
 
+- Added an overload for the `collect` macro that inferes the container type based
+  on the syntax of the last expression. Works with std seqs, tables and sets.
+
 - Added `randState` template that exposes the default random number generator.
   Useful for library authors.
 
@@ -52,6 +55,9 @@
 
 - `writeStackTrace` is available in JS backend now.
 
+- `strscans.scanf` now supports parsing single characters.
+
+
 ## Language changes
 
 - `nimscript` now handles `except Exception as e`.
@@ -59,6 +65,7 @@
 - The `cstring` doesn't support `[]=` operator in JS backend.
 
 - nil dereference is not allowed at compile time. `cast[ptr int](nil)[]` is rejected at compile time.
+
 
 ## Compiler changes
 
@@ -69,6 +76,7 @@
 
 - Added `nim --eval:cmd` to evaluate a command directly, see `nim --help`.
 
+- VM now supports `addr(mystring[ind])` (index + index assignment)
 
 
 ## Tool changes
