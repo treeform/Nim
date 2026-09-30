@@ -6,9 +6,10 @@ discard """
 import std/[assertions, complex, math, parseopt, strutils]
 
 block:
-  var arguments: seq[string]
-  var options: seq[string]
-  var parser = initOptParser(@["file", "-v", "--name=value"])
+  var
+    arguments: seq[string]
+    options: seq[string]
+    parser = initOptParser(@["file", "-v", "--name=value"])
   for kind, key, value in parser.getopt():
     case kind
     of cmdArgument:

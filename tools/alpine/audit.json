@@ -1,0 +1,337 @@
+{
+  "date": "2026-09-30",
+  "worktree": "/Users/me/p/nim-alpine-2",
+  "branch": "alpine-audit64",
+  "scope": "Alpine Linux 64-bit only: amd64 and arm64.",
+  "upstream_head": "40f150c19e8703ae595b568f33c6e55f8c873145",
+  "tested_code_commit": "e09460fe14615d859583dd24a203cdd26f6284e9",
+  "versions": {
+    "alpine": "3.23",
+    "musl": "1.2.5-r23",
+    "gcc": "15.2.0-r2",
+    "clang": "21.1.2-r2",
+    "compiler_rt": "21.1.2-r0",
+    "nim": "2.3.1"
+  },
+  "matrix": {
+    "architectures": [
+      "amd64",
+      "arm64"
+    ],
+    "compilers": [
+      "gcc",
+      "clang"
+    ],
+    "backends": [
+      "c",
+      "cpp"
+    ],
+    "memory_managers": [
+      "orc",
+      "refc"
+    ]
+  },
+  "architectures": {
+    "arm64": {
+      "focused_checks": 326,
+      "unexpected_failures": 0,
+      "expected_stdout_compile_rejections": 8,
+      "additional_static_checks": 4,
+      "additional_static_failures": 0,
+      "raw_results": "bin/alpine-audit-results/arm64/combined.json",
+      "cases": [
+        "talpine",
+        "talpineabi",
+        "talpinecharset",
+        "talpinedns",
+        "talpinedynamic",
+        "talpinefeatures",
+        "talpinelocale",
+        "talpineoptions",
+        "talpineregex",
+        "talpinestacks",
+        "talpinestdioassign",
+        "talpinestdioredirect",
+        "talpinestreams",
+        "tencodingsstatic",
+        "tgetaddrinfo",
+        "tincomplete",
+        "tposixscalars",
+        "tpthreadattrs",
+        "tssl"
+      ]
+    },
+    "amd64": {
+      "focused_checks": 326,
+      "unexpected_failures": 0,
+      "expected_stdout_compile_rejections": 8,
+      "additional_static_checks": 4,
+      "additional_static_failures": 0,
+      "raw_results": "bin/alpine-audit-results/amd64/combined.json",
+      "cases": [
+        "talpine",
+        "talpineabi",
+        "talpinecharset",
+        "talpinedns",
+        "talpinedynamic",
+        "talpinefeatures",
+        "talpinelocale",
+        "talpineoptions",
+        "talpineregex",
+        "talpinestacks",
+        "talpinestdioassign",
+        "talpinestdioredirect",
+        "talpinestreams",
+        "tencodingsstatic",
+        "tgetaddrinfo",
+        "tincomplete",
+        "tposixscalars",
+        "tpthreadattrs",
+        "tssl"
+      ]
+    }
+  },
+  "new_draft_prs": [
+    {
+      "number": 10,
+      "url": "https://github.com/treeform/Nim/pull/10",
+      "base": "nim-alpine",
+      "branch": "alpine-pthread-types",
+      "purpose": "Header-defined pthread structs",
+      "changed_lines": 78,
+      "baseline": "arm64 pthread_attr_t reports 8 bytes; C reports 56 bytes."
+    },
+    {
+      "number": 11,
+      "url": "https://github.com/treeform/Nim/pull/11",
+      "base": "alpine-pthread-types",
+      "branch": "alpine-pthread-attrs",
+      "purpose": "Correct pthread attribute output signatures",
+      "changed_lines": 59,
+      "baseline": "Native csize_t outputs fail Nim checking; detach-state output is passed by value."
+    },
+    {
+      "number": 12,
+      "url": "https://github.com/treeform/Nim/pull/12",
+      "base": "alpine-pthread-types",
+      "branch": "alpine-posix-scalars",
+      "purpose": "Correct Linux arm64 scalar widths and signedness",
+      "changed_lines": 72,
+      "baseline": "ClockId and nine other scalar typedefs report 8 bytes instead of native 4 bytes."
+    },
+    {
+      "number": 13,
+      "url": "https://github.com/treeform/Nim/pull/13",
+      "base": "alpine-encodings",
+      "branch": "alpine-iconv-cpp",
+      "purpose": "Match the C representation of opaque iconv handles",
+      "baseline": "Clang C++ rejects assigning iconv_open's void pointer to a generated struct pointer.",
+      "changed_lines": 7
+    }
+  ],
+  "existing_fixes_in_audit_branch": [
+    3,
+    4,
+    5,
+    8
+  ],
+  "themes": [
+    {
+      "theme": "Missing GNU extensions, headers and include-order assumptions",
+      "result": "No listed dependency found in lib/compiler; focused fixtures compile with GCC and Clang.",
+      "probes": [
+        "talpinefeatures",
+        "source_scan"
+      ],
+      "prs": []
+    },
+    {
+      "theme": "Missing macros and constants",
+      "result": "Process spawning, descriptor flags and name/page limits pass. No listed obsolete aliases found.",
+      "probes": [
+        "talpinefeatures",
+        "source_scan"
+      ],
+      "prs": []
+    },
+    {
+      "theme": "Feature macros and libc detection",
+      "result": "Core fixtures build on musl without a __MUSL__ macro. Linux iconv detection needed the existing header fix.",
+      "probes": [
+        "talpinefeatures",
+        "tencodingsstatic"
+      ],
+      "prs": [
+        3
+      ]
+    },
+    {
+      "theme": "Large-file interfaces, native types and conflicting headers",
+      "result": "5 GiB sparse offsets pass. Native-size probes exposed incorrect pthread structs and arm64 scalar types; their fixes pass.",
+      "probes": [
+        "talpinestreams",
+        "talpineabi",
+        "tposixscalars"
+      ],
+      "prs": [
+        10,
+        12
+      ]
+    },
+    {
+      "theme": "strerror_r and other incorrect C signatures",
+      "result": "The POSIX strerror_r wrapper matches Nim error messages. Pthread attribute getters needed four corrected output signatures.",
+      "probes": [
+        "talpinefeatures",
+        "tpthreadattrs"
+      ],
+      "prs": [
+        11
+      ]
+    },
+    {
+      "theme": "Dependencies built against the wrong libc",
+      "result": "A musl-built plugin loads; a glibc-built plugin needing gnu_get_libc_version is rejected. Static PCRE works with its static package and override.",
+      "probes": [
+        "talpinedynamic",
+        "talpineregex"
+      ],
+      "prs": []
+    },
+    {
+      "theme": "Small worker-thread stacks",
+      "result": "A Nim-created worker fills and reads a 512 KiB local array. C/C++, ORC/refc and sanitizer probes pass.",
+      "probes": [
+        "talpinestacks",
+        "tpthreadattrs"
+      ],
+      "prs": []
+    },
+    {
+      "theme": "stdio, opaque FILE, printf rounding and EOF",
+      "result": "EOF resets, descriptor redirection and rounding pass. Direct stdout assignment is an expected musl compile rejection. FILE repr uses the existing compiler fix.",
+      "probes": [
+        "talpinestreams",
+        "talpinestdioredirect",
+        "talpinestdioassign",
+        "tincomplete",
+        "contracts.c"
+      ],
+      "prs": [
+        5
+      ]
+    },
+    {
+      "theme": "Locale and character handling",
+      "result": "Nim Unicode casing, numeric parsing and formatting pass. Libc German collation remains bytewise, an expected limitation.",
+      "probes": [
+        "talpinelocale"
+      ],
+      "prs": []
+    },
+    {
+      "theme": "iconv coverage, substitution, BOM and handle types",
+      "result": "Supported conversions and UTF-16/32 BOMs pass. ASCII substitution, unsupported //TRANSLIT and GBK output are verified libc behavior. Static binding and C++ handle fixes pass.",
+      "probes": [
+        "talpinecharset",
+        "tencodingsstatic"
+      ],
+      "prs": [
+        3,
+        13
+      ]
+    },
+    {
+      "theme": "getopt and option permutation",
+      "result": "Nim parseopt handles options after a positional argument. Raw libc getopt stops there, as expected.",
+      "probes": [
+        "talpineoptions",
+        "contracts.c"
+      ],
+      "prs": []
+    },
+    {
+      "theme": "Dynamic linker, lazy binding and plugin unloading",
+      "result": "Symbol lookup, missing libraries, wrong-libc rejection and persistent state after dlclose pass. A fully static executable cannot load the shared plugin.",
+      "probes": [
+        "talpinedynamic",
+        "staticload"
+      ],
+      "prs": []
+    },
+    {
+      "theme": "DNS, search domains, TCP fallback and NSS",
+      "result": "An isolated resolver verifies search expansion and a real TCP retry. Local root passwd/group lookups pass. Raw socket lookups use the existing nil-service fix.",
+      "probes": [
+        "talpinedns",
+        "dns.py",
+        "talpinefeatures",
+        "tgetaddrinfo"
+      ],
+      "prs": [
+        4
+      ]
+    },
+    {
+      "theme": "Stubbed utmp/wtmp and complex math",
+      "result": "Native getutent returns no records. Nim complex abs/sqrt and gamma smoke tests pass.",
+      "probes": [
+        "contracts.c",
+        "talpineoptions"
+      ],
+      "prs": []
+    },
+    {
+      "theme": "Sanitizers",
+      "result": "Clang ASan+UBSan pass for a C control and Nim file-I/O/thread-stack probes on both architectures. GCC runtime linking fails for the C control too; this is toolchain packaging.",
+      "probes": [
+        "sanitize.c",
+        "talpinestreams",
+        "talpinestacks"
+      ],
+      "prs": []
+    }
+  ],
+  "source_scan": {
+    "<sys/cdefs.h>": [],
+    "<sys/queue.h>": [],
+    "<fts.h>": [],
+    "<obstack.h>": [],
+    "<argp.h>": [],
+    "MAXNAMLEN": [],
+    "MSG_TRYHARD": [],
+    "S_BLKSIZE": [],
+    "pread64": [],
+    "stat64": [],
+    "strtol_l": [],
+    "importc: \"getpt\"": [],
+    "__GLIBC__": [],
+    "__MUSL__": []
+  },
+  "additional_control": "Debian glibc arm64 passes scalar and pthread-attribute regressions with C and C++.",
+  "additional_regression": "Existing SSL socket regression passes the full two-architecture/compiler/backend/memory-manager matrix with PR #8 applied.",
+  "reproduce": {
+    "packages": [
+      "bash",
+      "build-base",
+      "clang",
+      "compiler-rt",
+      "git",
+      "python3",
+      "pcre-dev",
+      "pcre-static",
+      "libssl3",
+      "tzdata"
+    ],
+    "command": "python3 tools/alpine/run.py bin/nim --foreign bin/audit-foreign.so",
+    "foreign_dependency": "Build tools/alpine/foreign.c as a shared library on a glibc host; Alpine cannot build that intentionally incompatible control.",
+    "ci": "The Alpine workflow bootstraps the branch compiler, runs focused probes and uploads logs/results."
+  },
+  "limits": [
+    "Focused regression probes do not prove every Nim function or third-party package works.",
+    "No 32-bit targets were tested.",
+    "DNS probes cover a controlled IPv4 resolver, search domains and TCP fallback; arbitrary split-DNS/NSS deployments were not reproduced.",
+    "Locale/iconv and raw libc stubs are tested behavior, not promises of glibc feature parity.",
+    "No upstream PRs were created."
+  ]
+}
