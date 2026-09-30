@@ -6,6 +6,9 @@ discard """
 
 import std/[assertions, encodings]
 
+when defined(linux):
+  {.passl: "-static".}
+
 block:
   let encoder = open("UTF-8", "CP1252")
   defer: encoder.close()

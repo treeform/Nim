@@ -126,7 +126,7 @@
       "branch": "alpine-iconv-cpp",
       "purpose": "Match the C representation of opaque iconv handles",
       "baseline": "Clang C++ rejects assigning iconv_open's void pointer to a generated struct pointer.",
-      "changed_lines": 5
+      "changed_lines": 4
     }
   ],
   "existing_fixes_in_audit_branch": [
