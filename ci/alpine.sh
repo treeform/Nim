@@ -13,4 +13,6 @@ bin/nim c --lib:lib --out:koch koch.nim
 for memory in orc refc; do
   bin/nim check --mm:"$memory" tests/stdlib/talpine.nim
   bin/nim c -r --mm:"$memory" tests/stdlib/talpine.nim
+  bin/nim check --mm:"$memory" tests/stdlib/tgetaddrinfo.nim
+  bin/nim c -r --mm:"$memory" tests/stdlib/tgetaddrinfo.nim
 done
