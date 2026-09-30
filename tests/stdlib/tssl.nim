@@ -1,4 +1,5 @@
 discard """
+  targets: "c cpp"
   matrix: "--mm:refc; --mm:orc"
   joinable: false
   disabled: "freebsd" # see #15713
