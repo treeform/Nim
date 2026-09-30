@@ -14,3 +14,7 @@ for memory in orc refc; do
   bin/nim check --mm:"$memory" tests/stdlib/talpine.nim
   bin/nim c -r --mm:"$memory" tests/stdlib/talpine.nim
 done
+if [[ "$cpu" == amd64 ]]; then
+  bin/nim check tests/dll/thcrreload.nim
+  bin/nim c -r tests/dll/thcrreload.nim
+fi

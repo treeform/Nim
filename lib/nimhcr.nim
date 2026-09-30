@@ -302,6 +302,7 @@ when defined(createNimHcr):
       globals: Table[string, GlobalVarSym]
       imports: seq[string]
       handle: LibHandle
+      copyName: string
       hash: string
       gen: int
       lastModification: Time
@@ -417,10 +418,13 @@ when defined(createNimHcr):
       modules[module].procs.del(name)
 
   proc unloadDll(name: string) =
+    ## Releases the library handle and removes its temporary copy.
     if modules[name].handle != nil:
       unloadLib(modules[name].handle)
+      removeFile(modules[name].copyName)
 
   proc loadDll(name: cstring) {.nimhcr.} =
+    ## Loads a fresh library copy for the current reload generation.
     let name = $name
     trace "HCR LOADING: ", name.sanitize
     if modules.contains(name):
@@ -428,12 +432,13 @@ when defined(createNimHcr):
     else:
       modules[name] = newModuleDesc()
 
-    let copiedName = name & ".copy." & dllExt
+    let copiedName = name & ".copy." & $generation & "." & dllExt
     copyFileWithPermissions(name, copiedName)
 
     let lib = loadLib(copiedName)
     assert lib != nil
     modules[name].handle = lib
+    modules[name].copyName = copiedName
     modules[name].gen = generation
     modules[name].lastModification = getLastModificationTime(name)
 
