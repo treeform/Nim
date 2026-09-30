@@ -1,7 +1,6 @@
 discard """
   disabled: "windows"
   disabled: "osx"
-  disabled: "arm64"
   disabled: "arm"
   joinable: false
 """
@@ -30,7 +29,7 @@ for expected in 2 .. 3:
 proc run(command: string) =
   ## Runs a command and reports its output on failure.
   let (output, status) = execCmdEx(command)
-  doAssert status == 0, output
+  doAssert status == 0, "Exit code " & $status & ": " & output
 
 block:
   let
