@@ -22,7 +22,9 @@ for memory in orc refc; do
 done
 for memory in orc refc; do
   bin/nim check --mm:"$memory" tests/stdlib/tpthreadattrs.nim
+  bin/nim check --mm:"$memory" tests/stdlib/tposixscalars.nim
   for backend in c cpp; do
     bin/nim "$backend" -r --mm:"$memory" tests/stdlib/tpthreadattrs.nim
+    bin/nim "$backend" -r --mm:"$memory" tests/stdlib/tposixscalars.nim
   done
 done
