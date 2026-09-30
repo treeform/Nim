@@ -1,4 +1,5 @@
 discard """
+  targets: "c cpp"
   matrix: "--mm:refc; --mm:orc"
   joinable: false
   disabled: "freebsd" # see #15713
@@ -71,8 +72,9 @@ proc main() =
       while true:
         # Send data until we get EPIPE.
         peer.send(DummyData, {})
-    except OSError:
-      discard
+    except OSError as error:
+      when defined(posix):
+        doAssert error.errorCode in [EPIPE, ECONNRESET]
     finally:
       peer.close()
 
