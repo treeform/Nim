@@ -1332,9 +1332,17 @@ else:
           return ((0 - tm.toAdjUnix).int, false)
         return (0, false)
 
-    # In case of a 32-bit time_t, we fallback to the closest available
-    # timezone information.
-    var a = clamp(unix, low(CTime).int64, high(CTime).int64).CTime
+    proc cSizeof(value: CTime): csize_t {.
+      importc: "sizeof", nodecl, noSideEffect.}
+      ## Returns the size of the C time type from its header.
+
+    # Use the C type's size, which can differ from its Nim backing type.
+    let seconds =
+      if cSizeof(default(CTime)) >= 8:
+        unix
+      else:
+        clamp(unix, low(int32).int64, high(int32).int64)
+    var a = cast[CTime](seconds)
     let tmPtr = localtime(a)
     if not tmPtr.isNil:
       let tm = tmPtr[]

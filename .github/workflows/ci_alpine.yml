@@ -30,3 +30,19 @@ jobs:
               apk add --no-cache bash build-base git
               bash ci/alpine.sh
             '
+      - name: Test 32-bit musl time handling
+        if: matrix.runner == 'ubuntu-24.04'
+        run: |
+          docker run --rm --platform linux/386 \
+            -v "$PWD:/workspace:ro" -w /workspace alpine:3.23 sh -ec '
+              apk add --no-cache build-base
+              for memory in orc refc; do
+                for backend in c cpp; do
+                  if [ "$backend" = c ]; then cc=gcc; else cc=g++; fi
+                  "$cc" -w -pthread -Ilib \
+                    nimcache/alpine-time32-$memory-$backend/*.$backend \
+                    -lm -lrt -o /tmp/time32
+                  /tmp/time32
+                done
+              done
+            '
