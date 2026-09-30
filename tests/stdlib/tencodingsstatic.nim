@@ -1,6 +1,7 @@
 discard """
   targets: "c cpp"
   disabled: "windows"
+  targets: "c cpp"
   matrix: "--mm:refc; --mm:orc"
 """
 
