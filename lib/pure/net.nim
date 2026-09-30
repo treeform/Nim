@@ -983,8 +983,10 @@ proc socketError*(socket: Socket, err: int = -1, async = false,
             elif sslErr == 0 and err == -1:
               errStr.add "in the BIO layer"
             else:
-              let errStr = $ERR_error_string(sslErr, nil)
-              raiseSSLError(errStr & ": " & errStr)
+              let message = $ERR_error_string(sslErr, nil)
+              if osErr != 0.OSErrorCode:
+                raiseOSError(osErr, message)
+              raiseSSLError(message)
             raiseOSError(osErr, errStr)
         of SSL_ERROR_SSL:
           # SSL shutdown must not be done if a fatal error occurred.
