@@ -39,7 +39,6 @@ def run(name, command, expected=False):
 
 sources = sorted(pathlib.Path("tools/alpine/probes").glob("*.nim"))
 sources += [pathlib.Path("tests/stdlib/talpineabi.nim"),
-            pathlib.Path("tests/stdlib/talpine.nim"),
             pathlib.Path("tests/stdlib/tgetaddrinfo.nim"),
             pathlib.Path("tests/stdlib/tposixscalars.nim"),
             pathlib.Path("tests/stdlib/tssl.nim")]

@@ -1,0 +1,49 @@
+name: Alpine compatibility audit
+
+on:
+  push:
+    branches: [alpine-audit64]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: alpine-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Alpine audit (${{ matrix.cpu }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            cpu: amd64
+          - runner: ubuntu-24.04-arm
+            cpu: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build a glibc dependency for the ABI probe
+        run: cc -shared -fPIC tools/alpine/foreign.c -o bin/audit-foreign.so
+      - name: Bootstrap and test on musl
+        run: |
+          docker run --rm -v "$PWD:/workspace" -w /workspace \
+            alpine:3.23 sh -ec '
+              apk add --no-cache bash build-base clang compiler-rt git \
+                python3 pcre-dev pcre-static libssl3 tzdata
+              bash tools/alpine/bootstrap.sh
+              python3 tools/alpine/run.py bin/nim \
+                --output bin/alpine-audit-results --foreign bin/audit-foreign.so
+            '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alpine-audit-${{ matrix.cpu }}
+          path: |
+            bin/alpine-audit-results/*.json
+            bin/alpine-audit-results/*.log

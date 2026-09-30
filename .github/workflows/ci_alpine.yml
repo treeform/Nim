@@ -2,7 +2,7 @@ name: Alpine Linux 64-bit
 
 on:
   push:
-    branches: [devel, 'alpine-*', nim-alpine]
+    branches: [devel, 'version-*']
   pull_request:
   workflow_dispatch:
 
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: alpine-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -25,25 +25,20 @@ jobs:
           - runner: ubuntu-24.04-arm
             cpu: arm64
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
-      - name: Build a glibc dependency for the ABI probe
-        run: cc -shared -fPIC tools/alpine/foreign.c -o bin/audit-foreign.so
-      - name: Bootstrap and test on musl
+      - name: Bootstrap and run CI on musl
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
             alpine:3.23 sh -ec '
-              apk add --no-cache bash build-base clang compiler-rt git \
-                python3 pcre-dev pcre-static libssl3 tzdata
-              bash ci/alpine.sh
-              python3 tools/alpine/run.py bin/nim \
-                --output bin/alpine-audit-results --foreign bin/audit-foreign.so
+              apk add --no-cache bash build-base clang git nodejs tzdata \
+                pcre lapack-dev curl-dev gc-dev sdl12-compat-dev \
+                sfml-dev valgrind libffi-dev openssl-dev
+              export PATH="$PWD/bin:$PATH"
+              exec bash -ec "
+                . ci/funs.sh
+                nimBuildCsourcesIfNeeded CC=gcc ucpu=${{ matrix.cpu }}
+                nimInternalBuildKochAndRunCI
+              "
             '
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: alpine-audit-${{ matrix.cpu }}
-          path: |
-            bin/alpine-audit-results/*.json
-            bin/alpine-audit-results/*.log

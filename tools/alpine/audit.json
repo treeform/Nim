@@ -98,7 +98,7 @@
       "base": "nim-alpine",
       "branch": "alpine-pthread-types",
       "purpose": "Header-defined pthread structs",
-      "changed_lines": 78,
+      "changed_lines": 72,
       "baseline": "arm64 pthread_attr_t reports 8 bytes; C reports 56 bytes."
     },
     {
@@ -107,7 +107,7 @@
       "base": "alpine-pthread-types",
       "branch": "alpine-pthread-attrs",
       "purpose": "Correct pthread attribute output signatures",
-      "changed_lines": 59,
+      "changed_lines": 53,
       "baseline": "Native csize_t outputs fail Nim checking; detach-state output is passed by value."
     },
     {
@@ -116,7 +116,7 @@
       "base": "alpine-pthread-types",
       "branch": "alpine-posix-scalars",
       "purpose": "Correct Linux arm64 scalar widths and signedness",
-      "changed_lines": 72,
+      "changed_lines": 66,
       "baseline": "ClockId and nine other scalar typedefs report 8 bytes instead of native 4 bytes."
     },
     {
@@ -126,7 +126,7 @@
       "branch": "alpine-iconv-cpp",
       "purpose": "Match the C representation of opaque iconv handles",
       "baseline": "Clang C++ rejects assigning iconv_open's void pointer to a generated struct pointer.",
-      "changed_lines": 7
+      "changed_lines": 5
     }
   ],
   "existing_fixes_in_audit_branch": [
@@ -323,9 +323,9 @@
       "libssl3",
       "tzdata"
     ],
-    "command": "python3 tools/alpine/run.py bin/nim --foreign bin/audit-foreign.so",
+    "command": "bash tools/alpine/bootstrap.sh && python3 tools/alpine/run.py bin/nim --foreign bin/audit-foreign.so",
     "foreign_dependency": "Build tools/alpine/foreign.c as a shared library on a glibc host; Alpine cannot build that intentionally incompatible control.",
-    "ci": "The Alpine workflow bootstraps the branch compiler, runs focused probes and uploads logs/results."
+    "ci": "New PRs inherit the standard Alpine CI. The separate Alpine compatibility audit workflow bootstraps the combined branch, runs focused probes, and uploads logs/results."
   },
   "limits": [
     "Focused regression probes do not prove every Nim function or third-party package works.",
@@ -333,5 +333,6 @@
     "DNS probes cover a controlled IPv4 resolver, search domains and TCP fallback; arbitrary split-DNS/NSS deployments were not reproduced.",
     "Locale/iconv and raw libc stubs are tested behavior, not promises of glibc feature parity.",
     "No upstream PRs were created."
-  ]
+  ],
+  "ci_base": "13659450454ed28fabe95c6535e0696fa6157991"
 }
