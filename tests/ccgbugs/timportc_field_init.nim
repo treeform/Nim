@@ -1,9 +1,9 @@
 discard """
   targets: "c cpp"
 """
-# Test const initialization of objects with opaque importc fields (e.g. FILE from stdio.h)
+# Test const initialization of objects with opaque importc fields.
 
-type OpaqueFile {.importc: "FILE", header: "<stdio.h>".} = object
+type OpaqueFile {.importc: "div_t", header: "<stdlib.h>".} = object
 
 type
   SimpleStruct = object
@@ -79,7 +79,7 @@ useTuple(tupleVal)
 useSandwich(sandwich.addr)
 
 # Edge cases: different C/Nim names
-type OpaqueWithCName {.importc: "FILE", header: "<stdio.h>".} = object
+type OpaqueWithCName {.importc: "div_t", header: "<stdlib.h>".} = object
 
 type StructWithRenamedField = object
   nimName {.importc: "c_name".}: int
