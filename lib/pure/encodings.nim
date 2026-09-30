@@ -45,7 +45,7 @@ when defined(nimPreviewSlimSystem):
 
 when not defined(windows):
   type
-    ConverterObj = object
+    ConverterObj {.importc: "void", nodecl, incompleteStruct.} = object
     EncodingConverter* = ptr ConverterObj ## Can convert between two character sets.
 
 else:

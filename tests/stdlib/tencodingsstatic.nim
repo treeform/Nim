@@ -1,7 +1,7 @@
 discard """
   targets: "c cpp"
   disabled: "windows"
-  matrix: "--mm:refc; --mm:orc"
+  matrix: "--mm:refc; --mm:orc; --mm:refc --cc:clang; --mm:orc --cc:clang"
 """
 
 import std/[assertions, encodings]
