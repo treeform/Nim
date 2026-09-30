@@ -1,9 +1,13 @@
 discard """
+  targets: "c cpp"
   disabled: "windows"
   matrix: "--mm:refc; --mm:orc"
 """
 
 import std/[assertions, encodings]
+
+when defined(linux):
+  {.passl: "-static".}
 
 block:
   let encoder = open("UTF-8", "CP1252")
