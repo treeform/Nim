@@ -28,10 +28,22 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+      - name: Build a glibc dependency for the ABI probe
+        run: cc -shared -fPIC tools/alpine/foreign.c -o bin/audit-foreign.so
       - name: Bootstrap and test on musl
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
             alpine:3.23 sh -ec '
-              apk add --no-cache bash build-base clang git
+              apk add --no-cache bash build-base clang compiler-rt git \
+                python3 pcre-dev pcre-static libssl3 tzdata
               bash ci/alpine.sh
+              python3 tools/alpine/run.py bin/nim \
+                --output bin/alpine-audit-results --foreign bin/audit-foreign.so
             '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alpine-audit-${{ matrix.cpu }}
+          path: |
+            bin/alpine-audit-results/*.json
+            bin/alpine-audit-results/*.log
