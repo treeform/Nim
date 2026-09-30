@@ -326,8 +326,6 @@ proc run*() =
         GC_removeStack(current.stack.bottom)
       when coroBackend == CORO_BACKEND_FIBERS:
         DeleteFiber(current.execContext)
-      else:
-        dealloc(current.stack.top)
       dealloc(current)
       ctx.current = next
     elif ctx.current == nil or ctx.current.next == nil:
