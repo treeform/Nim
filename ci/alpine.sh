@@ -20,3 +20,9 @@ for memory in orc refc; do
     bin/nim "$backend" -r --mm:"$memory" tests/stdlib/talpineabi.nim
   done
 done
+for memory in orc refc; do
+  bin/nim check --mm:"$memory" tests/stdlib/tpthreadattrs.nim
+  for backend in c cpp; do
+    bin/nim "$backend" -r --mm:"$memory" tests/stdlib/tpthreadattrs.nim
+  done
+done
