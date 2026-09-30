@@ -46,7 +46,8 @@ when defined(nimPreviewSlimSystem):
 when not defined(windows):
   type
     ConverterObj = object
-    EncodingConverter* = ptr ConverterObj ## Can convert between two character sets.
+    EncodingConverter* {.importc: "iconv_t", header: "<iconv.h>".} =
+      ptr ConverterObj ## Can convert between two character sets.
 
 else:
   type
