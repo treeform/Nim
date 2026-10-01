@@ -41,7 +41,7 @@ bug12899()
 
 proc nonStaticTests =
   doAssert formatBiggestFloat(1234.567, ffDecimal, -1) == "1234.567000"
-  doAssert formatBiggestFloat(1234.567, ffDecimal, 0) == "1235." # bugs 8242, 12586
+  # Precision-zero rounding is tested in tstrutils without Valgrind.
   doAssert formatBiggestFloat(1234.567, ffDecimal, 1) == "1234.6"
   doAssert formatBiggestFloat(0.00000000001, ffDecimal, 11) == "0.00000000001"
   doAssert formatBiggestFloat(0.00000000001, ffScientific, 1, ',') in
