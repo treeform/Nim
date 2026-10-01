@@ -115,6 +115,7 @@ proc dllTests(r: var TResults, cat: Category, options: string) =
     # still cannot find a recent Windows version of boehm.dll:
     runBasicDLLTest c, r, cat, options & " --gc:boehm"
     runBasicDLLTest c, r, cat, options & " -d:release --gc:boehm"
+  testSpec r, makeTest("tests/dll/thcrreload.nim", options, cat)
 
 # ------------------------------ GC tests -------------------------------------
 

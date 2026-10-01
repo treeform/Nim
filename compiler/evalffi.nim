@@ -54,6 +54,8 @@ proc getDll(conf: ConfigRef, cache: var TDllCache; dll: string; info: TLineInfo)
 const
   nkPtrLit = nkIntLit # hopefully we can get rid of this hack soon
 
+var nativeErrno {.importc: "errno", header: "<errno.h>".}: cint
+
 proc importcSymbol*(conf: ConfigRef, sym: PSym): PNode =
   let name = sym.cname # $sym.loc.r would point to internal name
   # the AST does not support untyped pointers directly, so we use an nkIntLit
@@ -78,6 +80,9 @@ proc importcSymbol*(conf: ConfigRef, sym: PSym): PNode =
       libPathMsg = dll
       let dllhandle = getDll(conf, gDllCache, dll, sym.info)
       theAddr = dllhandle.symAddr(name.cstring)
+    if theAddr.isNil and name == "errno" and sym.kind == skVar and
+      (lib.isNil or lib.kind == libHeader):
+        theAddr = addr nativeErrno
     if theAddr.isNil: globalError(conf, sym.info,
       "cannot import symbol: " & name & " from " & libPathMsg)
     result.intVal = cast[int](theAddr)

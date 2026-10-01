@@ -13,6 +13,13 @@ proc c_snprintf*(str: cstring, size: csize_t, format: cstring): cint {.importc: 
 proc c_malloc(size: csize_t): pointer {.importc:"malloc", header: "<stdlib.h>".}
 proc c_free(p: pointer) {.importc:"free", header: "<stdlib.h>".}
 
+when defined(linux):
+  var cErrno {.importc: "errno", header: "<errno.h>".}: cint
+
+  proc errnoLocation(): ptr cint {.
+    importc: "__errno_location", header: "<errno.h>", raises: [].}
+    ## Returns libc's thread-local errno address.
+
 proc fun() =
   block: # c_exp
     var x = 0.3
@@ -44,6 +51,15 @@ proc fun() =
     doAssert num == numExp
     c_printf("ret=[%s]\n", buffer2)
     c_free(buffer2)
+
+  when defined(linux):
+    block:
+      let location = errnoLocation()
+      doAssert cast[int](addr(cErrno)) == cast[int](location)
+      cErrno = 57
+      doAssert location[] == 57
+      location[] = 28
+      doAssert cErrno == 28
 
   block: # c_printf bug
     var a = 123
