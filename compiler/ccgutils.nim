@@ -77,7 +77,6 @@ proc mapSetType(conf: ConfigRef; typ: PType): TCTypeKind =
   else: result = ctArray
 
 proc ccgIntroducedPtr*(conf: ConfigRef; s: PSym, retType: PType): bool =
-  ## Determines whether a parameter needs an introduced pointer.
   var pt = skipTypes(s.typ, typedescInst)
   assert skResult != s.kind
 
@@ -88,10 +87,9 @@ proc ccgIntroducedPtr*(conf: ConfigRef; s: PSym, retType: PType): bool =
   elif tfByCopy in pt.flags: return false
   case pt.kind
   of tyObject:
-    if tfIncompleteStruct in pt.flags or
-      (s.typ.sym != nil and sfForward in s.typ.sym.flags):
-        # Incomplete and forwarded objects require pointer parameters.
-        result = true
+    if s.typ.sym != nil and sfForward in s.typ.sym.flags:
+      # forwarded objects are *always* passed by pointers for consistency!
+      result = true
     elif (optByRef in s.options) or (getSize(conf, pt) > conf.target.floatSize * 3):
       result = true           # requested anyway
     elif (tfFinal in pt.flags) and (pt.baseClass == nil):

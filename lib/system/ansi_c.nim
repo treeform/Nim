@@ -156,7 +156,7 @@ proc c_raise*(sign: cint): cint {.importc: "raise", header: "<signal.h>".}
 
 type
   CFile {.importc: "FILE", header: "<stdio.h>",
-          incompleteStruct.} = object
+          incompleteStruct, byref.} = object
   CFilePtr* = ptr CFile ## The type representing a file handle.
 
 # duplicated between io and ansi_c

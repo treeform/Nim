@@ -45,7 +45,7 @@ when defined(nimPreviewSlimSystem):
 
 when not defined(windows):
   type
-    ConverterObj {.importc: "void", nodecl, incompleteStruct.} = object
+    ConverterObj = object
     EncodingConverter* = ptr ConverterObj ## Can convert between two character sets.
 
 else:
@@ -314,17 +314,20 @@ else:
   var errno {.importc, header: "<errno.h>".}: cint
 
   when defined(bsd) or defined(linux):
+    type IconvHandle {.importc: "iconv_t", header: "<iconv.h>".} =
+      distinct pointer
     {.pragma: importIconv, cdecl, header: "<iconv.h>".}
     when defined(openbsd):
       {.passL: "-liconv".}
   else:
+    type IconvHandle = EncodingConverter
     {.pragma: importIconv, cdecl, dynlib: iconvDll.}
 
-  proc iconvOpen(tocode, fromcode: cstring): EncodingConverter {.
+  proc iconvOpen(tocode, fromcode: cstring): IconvHandle {.
     importc: "iconv_open", importIconv.}
-  proc iconvClose(c: EncodingConverter) {.
+  proc iconvClose(c: IconvHandle) {.
     importc: "iconv_close", importIconv.}
-  proc iconv(c: EncodingConverter, inbuf: ptr cstring, inbytesLeft: ptr csize_t,
+  proc iconv(c: IconvHandle, inbuf: ptr cstring, inbytesLeft: ptr csize_t,
              outbuf: ptr cstring, outbytesLeft: ptr csize_t): csize_t {.
     importc: "iconv", importIconv.}
 
@@ -341,7 +344,7 @@ proc open*(destEncoding = "UTF-8", srcEncoding = "CP1252"): EncodingConverter =
   ## Opens a converter that can convert from `srcEncoding` to `destEncoding`.
   ## Raises `EncodingError` if it cannot fulfill the request.
   when not defined(windows):
-    result = iconvOpen(destEncoding, srcEncoding)
+    result = cast[EncodingConverter](iconvOpen(destEncoding, srcEncoding))
     if result == cast[EncodingConverter](-1):
       raise newException(EncodingError,
         "cannot create encoding converter from " &
@@ -359,7 +362,7 @@ proc open*(destEncoding = "UTF-8", srcEncoding = "CP1252"): EncodingConverter =
 proc close*(c: EncodingConverter) =
   ## Frees the resources the converter `c` holds.
   when not defined(windows):
-    iconvClose(c)
+    iconvClose(cast[IconvHandle](c))
 
 when defined(windows):
   proc convertToWideString(codePage: CodePage, s: string): string =
@@ -459,6 +462,7 @@ else:
     ## assumes that `s` is in `srcEncoding`.
     ##
     ## .. warning:: UTF-16BE and UTF-32 conversions are not supported on Windows.
+    let handle = cast[IconvHandle](c)
     result = newString(s.len)
     var inLen = csize_t len(s)
     var outLen = csize_t len(result)
@@ -466,7 +470,7 @@ else:
     var dst = cstring(result)
     var iconvres: csize_t = csize_t(0)
     while inLen > 0:
-      iconvres = iconv(c, addr src, addr inLen, addr dst, addr outLen)
+      iconvres = iconv(handle, addr src, addr inLen, addr dst, addr outLen)
       if iconvres == high(csize_t):
         var lerr = errno
         if (lerr == EILSEQ or lerr == EINVAL) and outLen > 0:
@@ -483,7 +487,7 @@ else:
           # state across a short write, which silently corrupts the tail of the
           # output. Reset the converter and redo the whole conversion into a
           # larger buffer instead.
-          discard iconv(c, nil, nil, nil, nil)
+          discard iconv(handle, nil, nil, nil, nil)
           result = newString(len(result) * 2 + 16)
           inLen = csize_t len(s)
           outLen = csize_t len(result)
@@ -493,14 +497,14 @@ else:
           raiseOSError(lerr.OSErrorCode)
     # iconv has a buffer that needs flushing, specially if the last char is
     # not '\0'
-    discard iconv(c, nil, nil, addr dst, addr outLen)
+    discard iconv(handle, nil, nil, addr dst, addr outLen)
     if iconvres == high(csize_t) and errno == E2BIG:
       var offset = cast[int](dst) - cast[int](cstring(result))
       setLen(result, len(result) + inLen.int * 2 + 5)
       # 5 is minimally one utf-8 char
       dst = cast[cstring](cast[int](cstring(result)) + offset)
       outLen = csize_t(len(result) - offset)
-      discard iconv(c, nil, nil, addr dst, addr outLen)
+      discard iconv(handle, nil, nil, addr dst, addr outLen)
     # trim output buffer
     setLen(result, len(result) - outLen.int)
 
