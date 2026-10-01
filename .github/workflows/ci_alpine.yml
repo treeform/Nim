@@ -43,16 +43,3 @@ jobs:
                 nimInternalBuildKochAndRunCI
               "
             '
-      - name: Diagnose amd64 float formatting
-        if: ${{ failure() && matrix.cpu == 'amd64' }}
-        run: |
-          docker run --rm -v "$PWD:/workspace" -w /workspace \
-            alpine:3.23 sh -ec '
-              apk add --no-cache build-base valgrind
-              printf "%s\n" "import std/strutils" \
-                "echo formatBiggestFloat(1234.567, ffDecimal, 0)" \
-                > /tmp/format.nim
-              bin/nim c --mm:arc -d:useMalloc -o:/tmp/format /tmp/format.nim
-              /tmp/format
-              valgrind --error-exitcode=1 /tmp/format
-            '
