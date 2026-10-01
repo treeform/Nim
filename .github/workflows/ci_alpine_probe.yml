@@ -1,0 +1,33 @@
+name: Alpine formatting probe
+
+on:
+  push:
+    branches: [alpine-musl-verify]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check native formatting and Valgrind allocations
+        run: |
+          docker run --rm -v "$PWD:/workspace" -w /workspace \
+            alpine:3.23 sh -ec '
+              apk add --no-cache bash build-base git nodejs valgrind
+              export PATH="$PWD/bin:$PATH"
+              exec bash -ec "
+                . ci/funs.sh
+                nimBuildCsourcesIfNeeded CC=gcc ucpu=amd64
+                nim c koch
+                ./koch boot -d:release --mm:refc -d:nimStrictMode --lib:lib
+                nim check tests/destructor/tnewruntime_strutils.nim
+                nim c -r testament/testament --nim:bin/nim \
+                  r tests/destructor/tnewruntime_strutils.nim
+                testament/testament --nim:bin/nim r tests/stdlib/tstrutils.nim
+              "
+            '
