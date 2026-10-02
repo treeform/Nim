@@ -1,6 +1,7 @@
 name: Packages CI
 on:
   pull_request:
+  workflow_dispatch:
   push:
     branches:
       - 'devel'
