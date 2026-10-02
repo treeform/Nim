@@ -15,7 +15,7 @@ const
 
 type
   DIR* {.importc: "DIR", header: "<dirent.h>",
-          incompleteStruct, byref.} = object
+          incompleteStruct.} = object
 
 const SIG_HOLD* = cast[Sighandler](2)
 

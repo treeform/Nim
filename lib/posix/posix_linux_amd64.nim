@@ -28,7 +28,7 @@ when defined(nimHasStyleChecks):
 
 type
   DIR* {.importc: "DIR", header: "<dirent.h>",
-          incompleteStruct, byref.} = object
+          incompleteStruct.} = object
     ## A type representing a directory stream.
 
 type

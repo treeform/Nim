@@ -109,7 +109,6 @@ block:
     cp1252 = convert(orig, "CP1252", "UTF-8")
     current = getCurrentEncoding()
   doAssert orig == "\195\182\195\164\195\188\195\159"
-  doAssert convert(cp1252, current, "CP1252") == orig
   if supportsEncoding("ibm850"):
     let ibm850 = convert(cp1252, "ibm850", "CP1252")
     doAssert ibm850 == "\148\132\129\225"

@@ -236,21 +236,17 @@ when defined(createNimHcr):
   {.pragma: nimhcr, compilerproc, exportc, dynlib.}
 
   const Arm64Jumps = defined(linux) and hostCPU == "arm64"
-
-  # Jump instruction layouts for x86 and Linux ARM64.
   type
     ShortJumpInstruction {.packed.} = object
       opcode: byte
       offset: int32
 
     LongJumpInstruction {.packed.} = object
+      opcode1: byte
+      opcode2: byte
+      offset: int32
       when Arm64Jumps:
-        load: uint32
-        branch: uint32
-      else:
-        opcode1: byte
-        opcode2: byte
-        offset: int32
+        padding: uint16
       absoluteAddr: pointer
 
   proc writeJump(jumpTableEntry: ptr LongJumpInstruction, targetFn: pointer) =
@@ -260,32 +256,33 @@ when defined(createNimHcr):
         importc: "__builtin___clear_cache", nodecl, raises: [].}
         ## Flushes the instruction cache after writing a jump.
 
-      # Load the target address eight bytes after this instruction.
-      jumpTableEntry.load = 0x58000050'u32
-      # Branch to the target in X16.
-      jumpTableEntry.branch = 0xd61f0200'u32
+      # Load the target address at offset eight, then branch to it in X16.
+      let instructions = cast[ptr array[2, uint32]](jumpTableEntry)
+      instructions[][0] = 0x58000050'u32
+      instructions[][1] = 0xd61f0200'u32
       jumpTableEntry.absoluteAddr = targetFn
       let first = cast[pointer](jumpTableEntry)
       clearCache(first, first.shift(sizeof(LongJumpInstruction)))
-    else:
-      let
-        jumpFrom = jumpTableEntry.shift(sizeof(ShortJumpInstruction))
-        jumpDistance = distance(jumpFrom, targetFn)
+      return
 
-      if abs(jumpDistance) < 0x7fff0000:
-        let shortJump = cast[ptr ShortJumpInstruction](jumpTableEntry)
-        shortJump.opcode = 0xE9 # Emit a relative jump.
-        shortJump.offset = int32(jumpDistance)
+    let
+      jumpFrom = jumpTableEntry.shift(sizeof(ShortJumpInstruction))
+      jumpDistance = distance(jumpFrom, targetFn)
+
+    if abs(jumpDistance) < 0x7fff0000:
+      let shortJump = cast[ptr ShortJumpInstruction](jumpTableEntry)
+      shortJump.opcode = 0xE9 # relative jump
+      shortJump.offset = int32(jumpDistance)
+    else:
+      jumpTableEntry.opcode1 = 0xff # indirect absolute jump
+      jumpTableEntry.opcode2 = 0x25
+      when hostCPU == "i386":
+        # on x86 we write the absolute address of the following pointer
+        jumpTableEntry.offset = cast[int32](addr jumpTableEntry.absoluteAddr)
       else:
-        jumpTableEntry.opcode1 = 0xff # Emit an indirect absolute jump.
-        jumpTableEntry.opcode2 = 0x25
-        when hostCPU == "i386":
-          # On x86, use the absolute address of the following pointer.
-          jumpTableEntry.offset = cast[int32](addr jumpTableEntry.absoluteAddr)
-        else:
-          # On x64, use a relative address for the same location.
-          jumpTableEntry.offset = 0
-        jumpTableEntry.absoluteAddr = targetFn
+        # on x64, we use a relative address for the same location
+        jumpTableEntry.offset = 0
+      jumpTableEntry.absoluteAddr = targetFn
 
   if hostCPU == "arm":
     const jumpSize = 8
@@ -693,3 +690,4 @@ elif defined(hotcodereloading) or defined(testNimHcr):
     proc hcrAddEventHandler*(isBefore: bool, cb: proc () {.nimcall.}) =
       # TODO
       discard
+
