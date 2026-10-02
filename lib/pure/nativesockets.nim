@@ -291,10 +291,13 @@ proc getAddrInfo*(address: string, port: Port, hints: AddrInfo): ptr AddrInfo =
   ## .. warning:: The resulting `ptr AddrInfo` must be freed using `freeAddrInfo`!
   result = nil
   let
-    socketPort = $port
+    socketPort = if hints.ai_socktype == toInt(SOCK_RAW): "" else: $port
     service =
-      if hints.ai_socktype == toInt(SOCK_RAW):
-        nil
+      when defined(musl):
+        if hints.ai_socktype == toInt(SOCK_RAW):
+          nil
+        else:
+          socketPort.cstring
       else:
         socketPort.cstring
   var gaiResult = getaddrinfo(address, service, addr(hints), result)
