@@ -1203,9 +1203,15 @@ proc semForVars(c: PContext, n: PNode; flags: TExprFlags): PNode =
   c.p.breakInLoop = oldBreakInLoop
   dec(c.p.nestedLoopCounter)
 
-proc implicitIterator(c: PContext, it: string, arg: PNode, flags: TExprFlags): PNode =
+proc implicitIterator(c: PContext, it: string, arg: PNode, flags: TExprFlags,
+                      boundIterator: PNode): PNode =
+  ## Resolves implicit iteration with any captured definition-site overloads.
   result = newNodeI(nkCall, arg.info)
-  result.add(newIdentNode(getIdent(c.cache, it), arg.info))
+  result.add:
+    if boundIterator != nil:
+      boundIterator
+    else:
+      newIdentNode(getIdent(c.cache, it), arg.info)
   if arg.typ != nil and arg.typ.kind in {tyVar, tyLent}:
     result.add newDeref(arg)
   else:
@@ -1292,6 +1298,10 @@ proc handleCaseStmtMacro(c: PContext; n: PNode; flags: TExprFlags): PNode =
 
 proc semFor(c: PContext, n: PNode; flags: TExprFlags): PNode =
   checkMinSonsLen(n, 3, c.config)
+  var boundIterator: PNode = nil
+  if nfImplicitIterator in n[^2].flags:
+    boundIterator = n[^2][0]
+    n[^2] = n[^2][1]
   result = handleForLoopMacro(c, n, flags)
   if result != nil: return result
   openScope(c)
@@ -1317,9 +1327,9 @@ proc semFor(c: PContext, n: PNode; flags: TExprFlags): PNode =
   elif not isCallExpr or call[0].kind != nkSym or
       call[0].sym.kind != skIterator:
     if n.len == 3:
-      n[^2] = implicitIterator(c, "items", n[^2], iteratorFlags)
+      n[^2] = implicitIterator(c, "items", n[^2], iteratorFlags, boundIterator)
     elif n.len == 4:
-      n[^2] = implicitIterator(c, "pairs", n[^2], iteratorFlags)
+      n[^2] = implicitIterator(c, "pairs", n[^2], iteratorFlags, boundIterator)
     else:
       localError(c.config, n[^2].info, "iterator within for loop context expected")
     result = semForVars(c, n, flags)

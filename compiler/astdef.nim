@@ -351,6 +351,7 @@ type
                 # `broadcastArrayThreshold`). The flag disambiguates it from an
                 # ordinary 1-element collection (e.g. a seq value that happens to
                 # carry an array type), so it must survive copies + serialization.
+    nfImplicitIterator # Captures a generic loop's items or pairs overloads.
 
   TNodeFlags* = set[TNodeFlag]
   TTypeFlag* = enum   # keep below 32 for efficiency reasons (now: 48)
@@ -937,7 +938,7 @@ const
                                       nfExecuteOnReload, nfLastRead,
                                       nfFirstWrite, nfSkipFieldChecking,
                                       nfDisabledOpenSym, nfLazyType,
-                                      nfBroadcast}
+                                      nfBroadcast, nfImplicitIterator}
   namePos* = 0
   patternPos* = 1    # empty except for term rewriting macros
   genericParamsPos* = 2

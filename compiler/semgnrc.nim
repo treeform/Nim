@@ -478,7 +478,23 @@ proc semGenericStmt(c: PContext, n: PNode,
     closeScope(c)
   of nkForStmt, nkParForStmt:
     openScope(c)
-    n[^2] = semGenericStmt(c, n[^2], flags, ctx)
+    if nfImplicitIterator in n[^2].flags:
+      n[^2][1] = semGenericStmt(c, n[^2][1], flags, ctx)
+    elif n.len in {3, 4}:
+      n[^2] = semGenericStmt(c, n[^2], flags, ctx)
+      # Capture overloads without calling an explicit iterator expression.
+      let
+        name = if n.len == 3: "items" else: "pairs"
+        ident = newIdentNode(getIdent(c.cache, name), n[^2].info)
+        iteratorCall = newTree(
+          nkCall,
+          lookup(c, ident, flags + {withinMixin}, ctx),
+          n[^2]
+        )
+      iteratorCall.flags.incl nfImplicitIterator
+      n[^2] = iteratorCall
+    else:
+      n[^2] = semGenericStmt(c, n[^2], flags, ctx)
     for i in 0..<n.len - 2:
       if (n[i].kind == nkVarTuple):
         for s in n[i]:

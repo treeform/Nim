@@ -1477,6 +1477,7 @@ proc genFlags*(s: set[TNodeFlag]; dest: var string) =
     of nfLazyType: dest.add "l1"
     of nfLazyBody: discard  # process-local placeholder; never serialized
     of nfBroadcast: dest.add "v"
+    of nfImplicitIterator: dest.add "i0"
 
 
 proc parse*(t: typedesc[TNodeFlag]; s: string): set[TNodeFlag] =
@@ -1514,7 +1515,11 @@ proc parse*(t: typedesc[TNodeFlag]; s: string): set[TNodeFlag] =
     of 'e': result.incl nfExplicitCall
     of 'f': result.incl nfFromTemplate
     of 'h': result.incl nfHasComment
-    of 'i': result.incl nfIsRef
+    of 'i':
+      if i+1 < s.len and s[i+1] == '0':
+        result.incl nfImplicitIterator
+        inc i
+      else: result.incl nfIsRef
     of 'l':
       if i+1 < s.len and s[i+1] == '0':
         result.incl nfLastRead
