@@ -6,6 +6,13 @@ discard """
 when defined(posix):
   import std/[assertions, posix]
 
+  when defined(linux) and defined(musl) and defined(cpu64):
+    block:
+      let current = pthread_self()
+      doAssert current == current
+      doAssert pthread_equal(current, current) != 0
+      doAssert $current == $cast[uint](current)
+
   block:
     let pageSize = sysconf(SC_PAGESIZE)
     var

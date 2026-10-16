@@ -37,6 +37,11 @@ else:
     PosixInt = int
     PosixUInt = int
 
+when defined(linux) and defined(musl) and defined(cpu64):
+  type Pthread* {.importc: "pthread_t", header: "<sys/types.h>".} = distinct int
+else:
+  type Pthread* {.importc: "pthread_t", header: "<sys/types.h>".} = int
+
 type
   DIR* {.importc: "DIR", header: "<dirent.h>",
           incompleteStruct, byref.} = object
@@ -200,7 +205,6 @@ type
     header: "<pthread.h>", pure, final.} = object
   Pthread_spinlock* {.importc: "pthread_spinlock_t",
                        header: "<sys/types.h>".} = PosixInt
-  Pthread* {.importc: "pthread_t", header: "<sys/types.h>".} = int
   Suseconds* {.importc: "suseconds_t", header: "<sys/types.h>".} = int
   #Ttime* {.importc: "time_t", header: "<sys/types.h>".} = int
   Timer* {.importc: "timer_t", header: "<sys/types.h>".} = int
