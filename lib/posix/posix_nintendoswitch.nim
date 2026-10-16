@@ -160,7 +160,7 @@ type
     abi: array[8 div sizeof(clong), clong]
   Pthread_spinlock* {.importc: "pthread_spinlock_t",
                        header: "<sys/types.h>".} = cint
-  Pthread* {.importc: "pthread_t", header: "<sys/types.h>".} = culong
+  Pthread* {.importc: "pthread_t", header: "<sys/types.h>".} = distinct culong
   Suseconds* {.importc: "suseconds_t", header: "<sys/types.h>".} = clong
   #Ttime* {.importc: "time_t", header: "<sys/types.h>".} = int
   Timer* {.importc: "timer_t", header: "<sys/types.h>".} = pointer

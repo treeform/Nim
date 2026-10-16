@@ -112,6 +112,13 @@ elif defined(haiku):
 else:
   include posix_other
 
+proc `==`*(a, b: Pthread): bool {.borrow.}
+  ## Compares native thread handles.
+
+proc `$`*(thread: Pthread): string =
+  ## Formats the native thread handle as an unsigned integer.
+  $cast[uint](thread)
+
 # There used to be this name in posix.nim a long time ago, not sure why!
 
 when StatHasNanoseconds:
