@@ -50,6 +50,17 @@ block:
     doAssert parseHeader("Accept: foo, bar, prologue") == (key: "Accept", value: @["foo", "bar", "prologue"])
     doAssert parseHeader("Accept: foo, bar, prologue, starlight") == (key: "Accept", value: @["foo", "bar", "prologue", "starlight"])
 
+  block userAgentWithComma:
+    const Agent = "Mozilla/5.0 (KHTML, like Gecko) Chrome/75.0.3770.100"
+    for key in ["user-agent", "User-Agent", "USER-AGENT"]:
+      let
+        parsed = parseHeader(key & ":  " & Agent)
+        headers = newHttpHeaders()
+      headers[parsed.key] = parsed.value
+      doAssert parsed == (key, @[Agent])
+      doAssert headers["User-Agent"] == Agent
+    doAssert parseHeader("User-Agent:") == ("User-Agent", @[""])
+
   block add_empty_sequence_to_HTTP_headers:
     block:
       var headers = newHttpHeaders()

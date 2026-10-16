@@ -251,9 +251,10 @@ func parseHeader*(line: string): tuple[key: string, value: seq[string]] =
   i = line.parseUntil(result.key, ':')
   inc(i) # skip :
   if i < len(line):
-    if cmpIgnoreCase(result.key, "cookie") == 0:
-      i += line.skipWhitespace(i)
-      result.value.add line.substr(i)
+    if cmpIgnoreCase(result.key, "cookie") == 0 or
+      cmpIgnoreCase(result.key, "user-agent") == 0:
+        i += line.skipWhitespace(i)
+        result.value.add line.substr(i)
     else:
       i += parseList(line, result.value, i)
   elif result.key.len > 0:
