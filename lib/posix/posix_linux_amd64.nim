@@ -34,6 +34,12 @@ type
 type
   SocketHandle* = distinct cint # The type used to represent socket descriptors
 
+when defined(musl) and defined(cpu64):
+  type Pthread* {.importc: "pthread_t", header: "<sys/types.h>".} =
+    distinct culong
+else:
+  type Pthread* {.importc: "pthread_t", header: "<sys/types.h>".} = culong
+
 type
   Time* {.importc: "time_t", header: "<time.h>".} = distinct clong
 
@@ -181,7 +187,6 @@ type
     abi: array[8 div sizeof(clong), clong]
   Pthread_spinlock* {.importc: "pthread_spinlock_t",
                        header: "<sys/types.h>".} = cint
-  Pthread* {.importc: "pthread_t", header: "<sys/types.h>".} = distinct culong
   Suseconds* {.importc: "suseconds_t", header: "<sys/types.h>".} = clong
   #Ttime* {.importc: "time_t", header: "<sys/types.h>".} = int
   Timer* {.importc: "timer_t", header: "<sys/types.h>".} = pointer

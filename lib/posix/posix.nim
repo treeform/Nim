@@ -112,12 +112,13 @@ elif defined(haiku):
 else:
   include posix_other
 
-proc `==`*(a, b: Pthread): bool {.borrow.}
-  ## Compares native thread handles.
+when defined(linux) and defined(musl) and defined(cpu64):
+  proc `==`*(a, b: Pthread): bool {.borrow.}
+    ## Compares native musl thread handles.
 
-proc `$`*(thread: Pthread): string =
-  ## Formats the native thread handle as an unsigned integer.
-  $cast[uint](thread)
+  proc `$`*(thread: Pthread): string =
+    ## Formats the native thread handle as an unsigned integer.
+    $cast[uint](thread)
 
 # There used to be this name in posix.nim a long time ago, not sure why!
 

@@ -161,7 +161,7 @@ type
                          header: "<sys/types.h>".} = int
   Pthread_spinlock* {.importc: "pthread_spinlock_t",
                        header: "<sys/types.h>".} = int
-  Pthread* {.importc: "pthread_t", header: "<sys/types.h>".} = distinct int
+  Pthread* {.importc: "pthread_t", header: "<sys/types.h>".} = int
   Suseconds* {.importc: "suseconds_t", header: "<sys/types.h>".} = int32
   #Ttime* {.importc: "time_t", header: "<sys/types.h>".} = int
   Timer* {.importc: "timer_t", header: "<sys/types.h>".} = int
